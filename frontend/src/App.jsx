@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import "./index.css";
 
-const socket = io("http://localhost:5000", { transports: ["websocket"] });
+const socket = io(import.meta.env.VITE_API_URL, { transports: ["websocket"] });
+
 
 export default function App() {
   const [videoLink, setVideoLink] = useState("");
