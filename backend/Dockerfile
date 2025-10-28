@@ -1,6 +1,7 @@
+# ✅ Fully working Dockerfile for Render video apps
 FROM node:20-bullseye
 
-# Install ffmpeg, yt-dlp, and certs
+# Install ffmpeg + yt-dlp and dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
