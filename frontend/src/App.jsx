@@ -45,11 +45,17 @@ export default function App() {
     setDlPct(0); setPrPct(0);
     setDlText("Starting…"); setPrText("Waiting…");
     setStatusMsg("Submitting job…");
-    const res = await fetch("http://localhost:5000/api/convert", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: videoLink, prefix, split_seconds: splitSeconds }),
-    });
+    // const res = await fetch("http://localhost:5000/api/convert", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ url: videoLink, prefix, split_seconds: splitSeconds }),
+    // });
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/convert`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ url: videoLink })
+});
+
     const data = await res.json();
     if (data.success === false) {
       setStatusMsg("❌ " + (data.error || "Job failed"));
