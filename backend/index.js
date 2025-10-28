@@ -1,3 +1,7 @@
+// Output root
+
+
+
 import express from "express";
 import cors from "cors";
 import { spawn, exec } from "child_process";
@@ -17,8 +21,12 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 // Output root
-const OUTPUT_ROOT = path.join(__dirname, "output");
+// const OUTPUT_ROOT = path.join(__dirname, "output");
+// if (!fs.existsSync(OUTPUT_ROOT)) fs.mkdirSync(OUTPUT_ROOT, { recursive: true });
+// Output root
+const OUTPUT_ROOT = "/tmp/output";
 if (!fs.existsSync(OUTPUT_ROOT)) fs.mkdirSync(OUTPUT_ROOT, { recursive: true });
+app.use("/output", express.static(OUTPUT_ROOT));
 
 // Static serving for results
 app.use("/output", express.static(OUTPUT_ROOT));
