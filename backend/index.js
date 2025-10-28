@@ -114,7 +114,8 @@ app.post("/api/convert", async (req, res) => {
   console.log("\n💾 Checking /tmp space before download...");
   getTmpUsage();
 
-  const downloadCmd = `yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 -o "${source}" "${url}"`;
+  const downloadCmd = `yt-dlp --cookies /app/cookies.txt -f bestvideo+bestaudio --merge-output-format mp4 -o "${source}" "${url}"`;
+
   console.log("▶️ Executing command:", downloadCmd);
 
   const ytdlp = exec(downloadCmd);
