@@ -1,7 +1,16 @@
 // ---------------------------------------------------------------------------
-// Enhanced Piped API Downloader (multi-mirror, safe JSON parsing, full logging)
+// ✅ Robust Piped Fallback Downloader (works in both ESM & CommonJS)
 // ---------------------------------------------------------------------------
-async function downloadViaPiped(videoId) {
+
+let fetch;
+try {
+  // Try native fetch (Node 18+)
+  fetch = global.fetch || (await import("node-fetch")).default;
+} catch {
+  fetch = (await import("node-fetch")).default;
+}
+
+export async function downloadViaPiped(videoId) {
   const mirrors = [
     "https://pipedapi.kavin.rocks",
     "https://piped.mha.fi",
@@ -11,20 +20,30 @@ async function downloadViaPiped(videoId) {
     "https://pipedapi.syncpundit.io"
   ];
 
-  console.log(`🎯 Trying to fetch via Piped fallback for videoId=${videoId}`);
+  console.log(`🎯 Starting Piped fallback for videoId=${videoId}`);
 
   for (const base of mirrors) {
-    try {
-      console.log(`🌐 Trying Piped mirror: ${base}`);
+    const url = `${base}/streams/${videoId}`;
+    console.log(`🌐 Trying Piped mirror: ${url}`);
 
-      const res = await fetch(`${base}/streams/${videoId}`, {
-        headers: { "User-Agent": "Mozilla/5.0" },
-        timeout: 15000
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; CorixTechBot/1.0)" },
+        signal: controller.signal
       });
+
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        console.warn(`⚠️ ${base} returned status ${res.status}`);
+        continue;
+      }
 
       const text = await res.text();
 
-      // Check for HTML response (usually Cloudflare / error page)
       if (text.startsWith("<!DOCTYPE") || text.includes("<html")) {
         console.warn(`⚠️ ${base} returned HTML instead of JSON, skipping...`);
         continue;
@@ -38,27 +57,26 @@ async function downloadViaPiped(videoId) {
         continue;
       }
 
-      if (!json.videoStreams?.length) {
-        console.warn(`⚠️ No valid streams returned by ${base}`);
+      if (!json.videoStreams || json.videoStreams.length === 0) {
+        console.warn(`⚠️ ${base} returned no valid streams`);
         continue;
       }
 
-      // Choose 720p if available, else first available stream
-      const streamUrl =
-        json.videoStreams.find((s) => s.quality === "720p")?.url ||
-        json.videoStreams[0]?.url;
+      const stream =
+        json.videoStreams.find((s) => s.quality === "720p") ||
+        json.videoStreams[0];
 
-      if (!streamUrl) {
-        console.warn(`⚠️ No stream URL found in ${base} response`);
+      if (!stream?.url) {
+        console.warn(`⚠️ ${base} has no playable stream URL`);
         continue;
       }
 
       console.log(`✅ Success! Using Piped stream from ${base}`);
-      return streamUrl;
+      return stream.url;
     } catch (err) {
-      console.warn(`❌ Piped mirror failed (${base}): ${err.message}`);
+      console.warn(`❌ ${base} failed: ${err.name} - ${err.message}`);
     }
   }
 
-  throw new Error("All Piped mirrors failed — none returned valid JSON.");
+  throw new Error("❌ All Piped mirrors failed — no valid response found.");
 }
