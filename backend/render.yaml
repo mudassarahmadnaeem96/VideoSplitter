@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: corixtech-shorts-backend
+    env: docker
+    plan: free
+    autoDeploy: true
