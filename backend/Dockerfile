@@ -1,23 +1,34 @@
-FROM node:20-bullseye
+# ===================================================
+# 📦  Dockerfile for CorixTech Shorts Studio Backend
+# ===================================================
+FROM node:20-slim
 
-# Install system dependencies (ffmpeg, Python, yt-dlp, certifi)
+# -----------------------------
+# 1️⃣  Install ffmpeg + yt-dlp
+# -----------------------------
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        ffmpeg \
-        python3 \
-        python3-pip \
-        ca-certificates \
-        curl \
-        openssl && \
-    pip3 install --no-cache-dir --upgrade yt-dlp certifi && \
-    update-ca-certificates && \
+    apt-get install -y ffmpeg python3 python3-pip curl && \
+    pip install --no-cache-dir yt-dlp && \
     rm -rf /var/lib/apt/lists/*
 
+# -----------------------------
+# 2️⃣  Set up app directory
+# -----------------------------
 WORKDIR /app
+
+# Copy package manifests first for dependency caching
 COPY package*.json ./
+
+# Install dependencies (omit dev)
 RUN npm install --omit=dev
+
+# -----------------------------
+# 3️⃣  Copy project files
+# -----------------------------
 COPY . .
 
-ENV NODE_ENV=production
+# -----------------------------
+# 4️⃣  Expose & run
+# -----------------------------
 EXPOSE 5000
 CMD ["node", "index.js"]
