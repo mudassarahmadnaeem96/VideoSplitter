@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { io } from "socket.io-client";
+import { convertVideo } from "./services/api";
 import "./index.css";
 
-const socket = io(import.meta.env.VITE_API_URL, { transports: ["websocket"] });
-
+// ✅ Socket connection to your Render backend
+const socket = io("https://videosplitter.onrender.com", {
+  transports: ["websocket"],
+});
 
 export default function App() {
   const [videoLink, setVideoLink] = useState("");
@@ -45,26 +48,31 @@ export default function App() {
     setDlPct(0); setPrPct(0);
     setDlText("Starting…"); setPrText("Waiting…");
     setStatusMsg("Submitting job…");
-    // const res = await fetch("http://localhost:5000/api/convert", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ url: videoLink, prefix, split_seconds: splitSeconds }),
-    // });
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/convert`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ url: videoLink })
-});
 
-    const data = await res.json();
-    if (data.success === false) {
-      setStatusMsg("❌ " + (data.error || "Job failed"));
-      return;
+    try {
+      // ✅ Use the centralized API function
+      const data = await convertVideo(videoLink, prefix, splitSeconds);
+
+      if (!data.success) {
+        setStatusMsg("❌ " + (data.error || "Job failed"));
+        return;
+      }
+
+      // ✅ Build output URLs dynamically from Render domain
+      const urls = (data.parts || []).map(
+        (p) =>
+          `https://videosplitter.onrender.com/output/${data.jobId}/${encodeURIComponent(
+            p
+          )}`
+      );
+
+      setOutputs(urls);
+      setStatusMsg("✅ Completed");
+      setPrPct(100);
+    } catch (err) {
+      console.error(err);
+      setStatusMsg("❌ Server error");
     }
-    const urls = (data.parts || []).map((p) => `http://localhost:5000/output/${data.jobId}/${encodeURIComponent(p)}`);
-    setOutputs(urls);
-    setStatusMsg("✅ Completed");
-    setPrPct(100);
   };
 
   return (
@@ -76,8 +84,16 @@ export default function App() {
 
       <section className="hero">
         <div className="hero-text">
-          <h2>AI‑Powered Shorts Converter — <span className="accent2">Fast</span> & <span className="accent1">Local</span></h2>
-          <p>Convert public YouTube links into ready‑to‑post shorts. Instant cutting with no re‑encoding, live progress, and inline previews — all styled in the CorixTech look & feel.</p>
+          <h2>
+            AI-Powered Shorts Converter —{" "}
+            <span className="accent2">Fast</span> &{" "}
+            <span className="accent1">Local</span>
+          </h2>
+          <p>
+            Convert public YouTube links into ready-to-post shorts. Instant
+            cutting with no re-encoding, live progress, and inline previews —
+            all styled in the CorixTech look & feel.
+          </p>
         </div>
         <div className="card">
           <input
@@ -113,14 +129,20 @@ export default function App() {
         <div className="progress-card">
           <p className="label">📥 Source Download</p>
           <div className="bar">
-            <div className="bar-fill purple" style={{ width: `${Math.min(100, Math.max(0, dlPct))}%` }} />
+            <div
+              className="bar-fill purple"
+              style={{ width: `${Math.min(100, Math.max(0, dlPct))}%` }}
+            />
           </div>
           <p className="small">{dlText}</p>
         </div>
         <div className="progress-card">
           <p className="label">🎬 Processing / Splitting</p>
           <div className="bar">
-            <div className="bar-fill blue" style={{ width: `${Math.min(100, Math.max(0, prPct))}%` }} />
+            <div
+              className="bar-fill blue"
+              style={{ width: `${Math.min(100, Math.max(0, prPct))}%` }}
+            />
           </div>
           <p className="small">{prText}</p>
         </div>
@@ -134,7 +156,9 @@ export default function App() {
             <div key={i} className="out-card">
               <p className="small">Part {String(i + 1).padStart(2, "0")}</p>
               <video controls className="video" src={url} />
-              <a className="dl" href={url} download>⬇ Download</a>
+              <a className="dl" href={url} download>
+                ⬇ Download
+              </a>
             </div>
           ))}
         </div>
